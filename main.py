@@ -1,7 +1,13 @@
+import base64
+import os
+import subprocess
+from io import BytesIO
+
 import torch
 import torchvision.transforms as transforms
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from starlette.responses import StreamingResponse, HTMLResponse
 from torchvision.tv_tensors import Image
 
 app = FastAPI()
@@ -60,3 +66,25 @@ async def say_hello():
     print('Predicted label:', predicted_label)
 
     return {"message": f"Hello {predicted_label}"}
+
+
+@app.post("/upload/")
+async def upload_image(file: UploadFile = File(...)):
+
+    contents = await file.read()
+    # Return an HTML response displaying the image
+    # Lưu tạm thời nội dung ảnh vào một tệp
+    with open("uploaded_image.jpg", "wb") as f:
+        f.write(contents)
+        # Đường dẫn tuyệt đối đến tệp ảnh
+    image_path = os.path.abspath("uploaded_image.jpg")
+
+    # Mở tệp ảnh bằng trình xem ảnh mặc định trên hệ thống Windows
+    try:
+        subprocess.run(["start", image_path], shell=True)
+    except FileNotFoundError:
+        print("Cannot find default image viewer.")
+        # Xử lý lỗi hoặc thử sử dụng các lệnh mở tệp ảnh trên các hệ điều hành khác
+
+    # Trả về thông báo thành công
+    return {"message": "Image opened successfully"}
